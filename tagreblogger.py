@@ -100,7 +100,7 @@ def reblog_all(source, target, tag, offset=0, max_posts=1000):
         percent = 100.0 * remaining / total
         print(f'{total} total posts, '
             f'{remaining} remaining, iteration {iteration} \t\t\t('
-            f'{percent:3.4f}%).'
+            f'{percent: > 8.3f}%).'
         for post in posts['posts']:
             reblog_one(target, post)
             i += 1
