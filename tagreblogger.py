@@ -12,8 +12,31 @@ _offset = 0
         # pprint.PrettyPrinter(indent=4).pprint
     # return pp
 
-def simple_pp(obj):
-    pass
+def pp(obj, indent=0, indent_increment=4):
+    indent_str = ' ' * indent
+    def print_k(k, width=0):
+        print(indent_str, str(k).ljust(width), ': ', end='')
+    def recurse(v):
+        pp(v, indent + indent_increment)
+
+    def key_sorter(k):
+        return len(str(k[0]))
+
+    if isinstance(obj, list):
+        print()
+        key_width = key_sorter(max(enumerate(obj), key=key_sorter))
+        for k, v in enumerate(obj):
+            print_k(k, key_width)
+            recurse(v)
+    elif isinstance(obj, dict):
+        key_width = key_sorter(max(obj.items(), key=key_sorter))
+        print()
+        for k, v in obj.items():
+            print_k(k, key_width)
+            recurse(v)
+    else:
+        # base case!
+        print(obj)
 
 def get_client():
     global client
@@ -52,17 +75,24 @@ def try_continue(error=None, verbose=None):
     if error is not None:
         print(error)#, file=sys.stderr)
     while True:
-        response = input('Continue? [y/n/v] ').strip().lower()
+        response = input('Continue? [y/n/v/h] ').strip().lower()
         if response == 'y':
             return
         elif response == 'v':
             if verbose is None:
                 print('No verbose information available!')
             else:
-                print(verbose)
+                pp(verbose)
         elif response == 'n':
             print(f'Exiting! continue with --offset {_offset}')
             exit()
+        elif response == 'h':
+            print(
+                'y: yes',
+                'n: no',
+                'v: verbose information, if applicable',
+                'h: this help',
+                sep='\n')
         else:
             print('Invalid response; Try again!')
 
