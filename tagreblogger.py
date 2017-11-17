@@ -41,6 +41,7 @@ def pp(obj, indent=0, indent_increment=4):
 def get_client():
     global client
     if client is None:
+        print('creating oauth client')
         with open('keys.json') as keys_file:
             keys = json.load(keys_file)
             client = pytumblr.TumblrRestClient(
@@ -155,21 +156,29 @@ def reblog_one(target, post):
     # 4. me
     #   4.blog ['blog_name']
     #   4.id   ['id']
-    if reblog(post['reblogged_root_uuid'], post['reblogged_root_id']):
+    # pp(post)
+    if ('reblogged_root_uuid' in post and 'reblogged_root_id' in post
+        and reblog(post['reblogged_root_uuid'], post['reblogged_root_id'])):
         return num_requests
-    if reblog(post['reblogged_from_uuid'], post['reblogged_from_id']):
+    if ('reblogged_from_uuid' in post and 'reblogged_from_id' in post and
+        reblog(post['reblogged_from_uuid'], post['reblogged_from_id'])):
         return num_requests
-    for note in post['notes']:
-        # TODO have this request more notes
-        if note['type'] == 'reblog':
-            if reblog(note['blog_uuid'], note['post_id']):
+    if ('trail' in post):
+        for trail in post['trail']:
+            if reblog(trail['blog']['name'], trail['post']['id']):
                 return num_requests
-    print('reblogging my own post; last resort!')
+    if 'notes' in post:
+        for note in post['notes']:
+            # TODO have this request more notes
+            if note['type'] == 'reblog':
+                if reblog(note['blog_uuid'], note['post_id']):
+                    return num_requests
+    print('reblogging source post; last resort!')
     if not reblog(post['blog_name'], post['id'], reblog_key=post['reblog_key']):
         raise OSError('reblogging my own post failed???')
     return num_requests
 
-def reblog_all(source, target, tag, offset=0, max_posts=1000):
+def reblog_all(source, target, tag, offset=0, max_posts=200):
     global POSTS_PER_PAGE
     global _offset
     _offset = offset
@@ -214,11 +223,12 @@ def main():
     argparser.add_argument('--offset', type=int, default=0,
         help='post offset (useful if rate-limited)')
 
-    argparser.add_argument('--max-posts', type=int, default=1000,
-        help='max posts to make; useful for rate-limiting')
+    argparser.add_argument('--max-posts', type=int, default=200,
+        help='max posts to make; useful for rate-limiting. remember, post-limit is 250 / day across all blogs')
 
     args = argparser.parse_args()
 
+    print('hello!')
     reblog_all(args.source, args.target, args.tag,
         max_posts=args.max_posts,
         offset=args.offset)
