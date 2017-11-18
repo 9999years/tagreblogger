@@ -144,37 +144,32 @@ def reblog_one(target, post, queue=False):
 
         return True
     num_requests = 0
-    # priority:
-    # 1. source
-    #   1.blog ['reblogged_root_uuid']
-    #   1.id   ['reblogged_root_id']
-    # 2. person i reblogged from
-    #   2.blog ['reblogged_from_uuid']
-    #   2.id   ['reblogged_from_id']
-    # 3. rando in the notes
-    #   3.key  first item in ['notes'] where 'type' == 'reblog'
-    #   3.blog key['blog_uuid']
-    #   3.id   key['post_id']
-    # 4. me
-    #   4.blog ['blog_name']
-    #   4.id   ['id']
-    # pp(post)
-    if ('reblogged_root_uuid' in post and 'reblogged_root_id' in post
-        and reblog(post['reblogged_root_uuid'], post['reblogged_root_id'])):
-        return num_requests
+
+    # person i reblogged it from
     if ('reblogged_from_uuid' in post and 'reblogged_from_id' in post and
         reblog(post['reblogged_from_uuid'], post['reblogged_from_id'])):
         return num_requests
-    if ('trail' in post):
+
+    # post source
+    if ('reblogged_root_uuid' in post and 'reblogged_root_id' in post
+        and reblog(post['reblogged_root_uuid'], post['reblogged_root_id'])):
+        return num_requests
+
+    # reblog trail (sometimse present?)
+    if 'trail' in post:
         for trail in post['trail']:
             if reblog(trail['blog']['name'], trail['post']['id']):
                 return num_requests
+
+    # randoms in the notes
     if 'notes' in post:
         for note in post['notes']:
             # TODO have this request more notes
             if note['type'] == 'reblog':
                 if reblog(note['blog_uuid'], note['post_id']):
                     return num_requests
+
+    # original post; last resort
     print('reblogging source post; last resort!')
     if not reblog(post['blog_name'], post['id'], reblog_key=post['reblog_key']):
         raise OSError('reblogging my own post failed???')
