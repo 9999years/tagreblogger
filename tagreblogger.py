@@ -117,11 +117,13 @@ def posts_in_tag(source, tag):
     try_status(posts)
     return posts['total_posts']
 
-def reblog_one(target, post):
+def reblog_one(target, post, queue=False):
     def reblog(blog_uuid, post_id, reblog_key=None):
         nonlocal target
         nonlocal post
         nonlocal num_requests
+
+        post_method = get_client().queue if queue else get_client().reblog
 
         if reblog_key is None:
             num_requests += 1
@@ -134,7 +136,7 @@ def reblog_one(target, post):
 
         num_requests += 1
         print(f'reblogging https://{blog_uuid}/post/{post_id}')
-        try_status(get_client().reblog(
+        try_status(post_method(
             id=post_id,
             reblog_key=reblog_key,
             blogname=target,
@@ -178,7 +180,8 @@ def reblog_one(target, post):
         raise OSError('reblogging my own post failed???')
     return num_requests
 
-def reblog_all(source, target, tag, offset=0, max_posts=200):
+def reblog_all(source, target, tag,
+        offset=0, max_posts=200, queue=False):
     global POSTS_PER_PAGE
     global _offset
     _offset = offset
@@ -196,7 +199,7 @@ def reblog_all(source, target, tag, offset=0, max_posts=200):
             f'requested set {iteration}'
             f'\t\t\t({percent(percent_finished)}).')
         for post in reversed(posts['posts']):
-            reblog_one(target, post)
+            reblog_one(target, post, queue=queue)
             i += 1
             _offset = offset + i
             if i >= max_posts:
@@ -219,6 +222,9 @@ def main():
 
     argparser.add_argument('tag', nargs='?',
         help='Tag to reblog (# omitted)')
+
+    argparser.add_argument('-q', '--queue', action='store_true',
+        help='queue posts instead of reblogging them immediately')
 
     argparser.add_argument('--offset', type=int, default=0,
         help='post offset (useful if rate-limited)')
