@@ -22,7 +22,9 @@ def pp(obj, indent=0, indent_increment=4):
     def key_sorter(k):
         return len(str(k[0]))
 
-    if isinstance(obj, list):
+    if hasattr(obj, '__len__') and len(obj) == 0:
+        print(obj)
+    elif isinstance(obj, list):
         print()
         key_width = key_sorter(max(enumerate(obj), key=key_sorter))
         for k, v in enumerate(obj):
@@ -55,22 +57,6 @@ def get_client():
 def percent(n):
     return '{: > 8.3f}%'.format(n * 100.0)
 
-def get_status(response):
-    if 'meta' in response and 'status' in response['meta']:
-        return response['meta']['status']
-    else:
-        return 200
-
-def try_post(blog_uuid, post_id):
-    post = get_client().posts(blog_uuid, id=post_id)
-    status = get_status(post)
-    if status == 404:
-        return None
-    elif status == 200:
-        return post
-    else:
-        try_status(status=status)
-
 def try_continue(error=None, verbose=None):
     global _offset
     if error is not None:
@@ -96,6 +82,28 @@ def try_continue(error=None, verbose=None):
                 sep='\n')
         else:
             print('Invalid response; Try again!')
+
+def get_status(response):
+    if 'meta' in response and 'status' in response['meta']:
+        return response['meta']['status']
+    else:
+        return 200
+
+def try_post(blog_uuid, post_id):
+    post = get_client().posts(blog_uuid, id=post_id)
+    status = get_status(post)
+    if status == 404:
+        return None
+    elif status == 403 and len(response) == 0:
+        # we've *probably*, almost definitely, run into a password-protected
+        # blog
+        return None
+    elif status == 200:
+        return post
+    else:
+        try_continue(f'Getting post {blog_uuid}/post/{post_id} failed '
+            f'with status {status}!', post)
+        return None;
 
 def try_status(response=None, status=None):
     if status is None:
