@@ -62,7 +62,7 @@ def try_continue(error=None, verbose=None):
     if error is not None:
         print(error)#, file=sys.stderr)
     while True:
-        response = input('Continue? [y/n/v/h] ').strip().lower()
+        response = input('Continue? [y/n/r/v/h] ').strip().lower()
         if response == 'y':
             return
         elif response == 'v':
@@ -75,8 +75,9 @@ def try_continue(error=None, verbose=None):
             exit()
         elif response == 'h':
             print(
-                'y: yes',
-                'n: no',
+                'y: yes (continues without stopping)',
+                'n: no (exits program)',
+                'r: retry (useful for 502 service unavailable, DOES NOTHING)',
                 'v: verbose information, if applicable',
                 'h: this help',
                 sep='\n')
@@ -94,7 +95,7 @@ def try_post(blog_uuid, post_id):
     status = get_status(post)
     if status == 404:
         return None
-    elif status == 403 and len(response) == 0:
+    elif status == 403 and len(post['response']) == 0:
         # we've *probably*, almost definitely, run into a password-protected
         # blog
         return None
